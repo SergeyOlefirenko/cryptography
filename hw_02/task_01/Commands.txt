@@ -1,0 +1,23 @@
+# Docker 
+docker build -t dieharder-image .
+
+docker run -it dieharder-image
+_____________________________________________________________________________________________________________________
+
+# File generation .bin (1 Gb)
+
+openssl rand -out rnd-openssl.bin 1000000000   
+
+python .\random_generator.py
+
+python .\secrets_generator.py
+
+_____________________________________________________________________________________________________________________
+
+# Run dieharder tests 
+
+docker run --rm -v ${PWD}:/data -it dieharder-image dieharder -a -g 201 -f /data/rnd-openssl.bin > report-openssl.txt
+
+docker run --rm -v ${PWD}:/data -it dieharder-image dieharder -a -g 201 -f /data/rnd-random.bin > report-random.txt
+
+docker run --rm -v ${PWD}:/data -it dieharder-image dieharder -a -g 201 -f /data/rnd-secrets.bin > report-secrets.txt

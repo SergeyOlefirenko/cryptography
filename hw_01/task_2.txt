@@ -1,0 +1,13 @@
+Розшифруйте повідомлення з Енігми моделі I (3 ротори). Повідомлення було зашифроване 18-го числа згідно з кодовою книгою, без використання індивідуального ключа (message key). Для зашифрування повідомлення використалася третя ключова група цього дня. Результат збережіть у текстовий файл та завантажте у вашому кабінеті.
+
+
+LAWQP GJHAM LMHJU HCAKU LBZIN QOIMY JVPJQ MHZBG TKWYQ IYWQV DMFXB UFAZM BVY
+
+
+BETWE ENSUB TLESH ADING ANDTH EABSE NCEOF LIGHT LIEST HENUA NCEOF IQLUS ION
+
+BETWEEN SUBTLE SHADING AND THE ABSENCE OF LIGHT LIES THE NUANCE OF IQLUSION
+
+
+
+

@@ -1,0 +1,9 @@
+Дешифруйте повідомлення, зашифроване варіацією шифру Цезаря. Користуйтеся операцією ROT13 з CyberChef для швидкого перебору можливих ключів шифру Цезаря. Результат збережіть у текстовий файл та завантажте у вашому кабінеті.
+
+Шифротекст:
+
+XDXVYV OCDMOT OCMZZ UZMJ JIZ GJJFDIB AJM CDBCGT DIOZGGDBZIO DIYDQDYPVGN
+
+CICADA THIRTY THREE ZERO ONE LOOKING FOR HIGHLY INTELLIGENT INDIVIDUALS
+
+ROT-5
