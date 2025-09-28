@@ -1,0 +1,130 @@
+Explanation
+
+1. Open https://aes.cryptohack.org/flipping_cookie/
+2. Execute get_cookie() and Submit
+3. Run the file task_02.py in cmd in the same directory where it is located using the command .\task_02.py
+4. Copy the obtained cookie from the OUTPUT on https://aes.cryptohack.org/flipping_cookie/
+5. Paste the cookie in cmd field
+
+Constants: what we want to flip
+
+# Change admin rights "False" -> "True;" (5 bytes)
+ORIGINAL = b"False"
+TARGET = b"True;"
+OFFSET_IN_BLOCK = 6  # position of "F" in "admin=False..." (0-based inside first 16-byte block)
+
+ORIGINAL is the bytes we expect currently in the cookie: the substring "False".
+
+TARGET is the bytes we want instead: "True;", semicolon preserve length = 5 bytes. Keeping the same length ensures the layout of the rest of the plaintext isn't shifted.
+
+OFFSET_IN_BLOCK = 6 — means that inside the first 16-byte plaintext block, the "F" of "admin=False" sits at byte index 6 (0-based). This is important because the CBC bit-flip will flip bytes at precise offsets within the block.
+
+XOR bytes:
+
+def xor_bytes(a: bytes, b: bytes) -> bytes:
+    return bytes(x ^ y for x, y in zip(a, b))
+
+A small helper that XORs two byte sequences byte-by-byte and returns the result. Used to compute the difference (delta) between original and target substrings.
+
+Сompute_new_iv:
+
+def compute_new_iv(iv_hex: str) -> str:
+    iv_hex = iv_hex.strip()
+    if len(iv_hex) != 32:
+        raise ValueError(f"IV hex length must be exactly 32, got {len(iv_hex)}")
+    try:
+        iv = unhexlify(iv_hex)
+    except Exception as e:
+        raise ValueError("IV is not valid hex") from e
+
+    diff = xor_bytes(ORIGINAL, TARGET)  # 5 bytes difference between "False" and "True;"
+    # delta_block: 16 bytes, non-zero only at positions OFFSET_IN_BLOCK .. OFFSET_IN_BLOCK+len(diff)
+    delta_block = bytearray(16)
+    delta_block[OFFSET_IN_BLOCK:OFFSET_IN_BLOCK + len(diff)] = diff
+
+    # new IV = extracted IV XOR delta_block
+    new_iv_bytes = bytes(x ^ y for x, y in zip(iv, delta_block))
+
+    # Produce a correct hex string (two hex digits per byte)
+    new_iv_hex = ''.join(f"{b:02x}" for b in new_iv_bytes)
+    return new_iv_hex
+
+What this function does (high-level):
+It takes the original IV (hex form) and returns a modified IV (also hex) such that when the server decrypts the first ciphertext block C1 with AES-CBC, the resulting plaintext block P1 = Dec(C1) XOR IV' will have "admin=True" instead of "admin=False".
+
+Step-by-step:
+
+Trim whitespace from iv_hex.
+
+Validate the length — the IV must be 16 bytes → 32 hex characters. If not, raise an error.
+
+Convert hex to raw bytes with unhexlify. If that fails, raise an error.
+
+Compute diff = ORIG XOR TARGET — this is the bytes you must flip in the plaintext to change "False" into "True;".
+
+Build a 16-byte delta_block that is zero everywhere except at the offset where "False" begins (so only the 5 bytes corresponding to "False" are non-zero).
+
+Compute new_iv_bytes = old_iv XOR delta_block. This uses the CBC property: modifying IV affects the first plaintext block by XORing with that same delta.
+
+Convert the resulting bytes back to a two-hex-digits-per-byte string ('{:02x}' formatting ensures leading zeros are preserved) and return it.
+
+Why we change only those five bytes:
+By changing only the bytes for "False" to "True;", we avoid changing other predictable or variable parts of the plaintext (like the expiry timestamp). This reduces the chance the server will detect malformed padding or a different plaintext layout.
+
+Split input hex into IV and ciphertext:
+
+def split_full_cookie(full_hex: str) -> Tuple[str, str]:
+    full_hex = full_hex.strip()
+    if len(full_hex) < 32:
+        raise ValueError("Full cookie too short (need at least 32 hex chars for IV)")
+    if len(full_hex) % 2 != 0:
+        raise ValueError("Full cookie hex must have an even number of characters")
+    iv_hex = full_hex[:32]
+    ct_hex = full_hex[32:]
+    return iv_hex, ct_hex
+
+Validates the provided full hex string (must be at least 32 hex chars for IV and even number of chars).
+
+Extracts the first 32 hex chars as iv_hex and the remainder as ct_hex (ciphertext without IV). Returns both.
+
+main():
+
+def main():
+    if len(sys.argv) >= 2:
+        full = sys.argv[1].strip()
+    else:
+        full = input("\nInsert obtained cookie from 'https://aes.cryptohack.org/flipping_cookie/' from Output and press Enter: ").strip()
+
+    try:
+        iv_hex, ct_hex = split_full_cookie(full)
+        new_iv = compute_new_iv(iv_hex)
+    except Exception as e:
+        print("Error:", e)
+        sys.exit(1)
+
+    print("\nDATA\n ")
+    print("Original Extracted IV: ", iv_hex, "\n")
+    print("Insert Modified IV in IV window in 'https://aes.cryptohack.org/flipping_cookie/': \n")
+    print("Modified IV:", new_iv, "\n")
+    print("Insert Cookie in Cookie window in 'https://aes.cryptohack.org/flipping_cookie/': \n")
+    print("Cookie: ", ct_hex, "\n")
+
+What it does:
+
+Accepts input either from the command line (python script.py <full_cookie_hex>) or interactively via input().
+
+Calls split_full_cookie() to get iv_hex and ct_hex.
+
+Calls compute_new_iv(iv_hex) to compute the modified IV that will flip "False" → "True;" in the first plaintext block after server decryption.
+
+If any error occurs (bad input, wrong length, invalid hex), print the error and exit.
+
+Prints the original IV (for confirmation), the modified IV (to paste back into the challenge web UI), and the ciphertext (cookie without IV) that should be submitted alongside the modified IV.
+
+Security:
+
+This script implements a CBC bit-flip attack. It works only because the server uses AES-CBC without integrity/authenticity (no HMAC / no AEAD). If the server used authenticated encryption (e.g., AES-GCM or AES-CBC + HMAC), this approach would fail.
+
+We only flip bytes that correspond to "False" → "True;" to avoid disturbing the rest of the plaintext or padding.
+
+

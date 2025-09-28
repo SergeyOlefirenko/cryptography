@@ -1,0 +1,17 @@
+
+Example:
+
+obtained cookie from output on 'https://aes.cryptohack.org/flipping_cookie/': 
+
+cdd9ec00b95f81ff1c1d0991ffc663531bdf96c20c4c11720fb960f201e7fdaf1ceefa0829cca07f27540bc0dd783ab7
+
+IV extracted from cookie: cdd9ec00b95f81ff1c1d0991ffc66353
+
+IV after modification: cdd9ec00b95f93ec050b5791ffc66353
+
+Cookie:  1bdf96c20c4c11720fb960f201e7fdaf1ceefa0829cca07f27540bc0dd783ab7
+
+Result: 
+
+{"flag":"crypto{4u7h3n71c4710n_15_3553n714l}"}
+
