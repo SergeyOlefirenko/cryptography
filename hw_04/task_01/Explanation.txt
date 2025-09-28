@@ -1,0 +1,307 @@
+Explanation
+
+The server encrypts our chosen plaintext and returns the ciphertext. We take the first block 𝐶0
+We construct a ciphertext: C0 || 0x00...00 || C0 and send it to /receive/.
+The server decrypts this crafted ciphertext and (on the vulnerable server) returns the decrypted plaintext in the error message. We obtain the bytes P1 and P3
+Compute key = P1 XOR P3. This yields the IV, and if IV == key then we have recovered the key
+With this key we can call /get_flag/{key}/ and obtain the flag.
+
+
+ciphertext: C0 || 0(16 bytes) || C0 means that we send the server a ciphertext consisting of three consecutive 16-byte blocks:
+C0  ||  00 00 00 ... 00  (16 zeros)  ||  C0 where CO is the first block of the original ciphertext (the first 16 bytes), and || denotes concatenation.
+
+CBC decryption
+
+Notation:
+
+D(X) — AES decryption of block X (the result of the AES decryption before XOR).
+IV — initialization vector used for the first block.
+
+The ciphertext blocks the server receives are: C0 (block 1), C1 = 0x00..00 (block 2), C2 = C0 (block 3).
+
+CBC decryption (block by block):
+
+P1 = D(C0) XOR IV
+P2 = D(C1) XOR C0
+
+P3 = D(C2) XOR C1 — but C1 here is 16 zeros, so XOR with zeros does not change the value: P3 = D(C0) XOR 0 = D(C0)
+
+Thus:
+
+P1 = D(C0) XOR IV
+P3 = D(C0)
+
+XORing P1 and P3 gives the IV. If we XOR these two decrypted blocks: P1 XOR P3 = (D(C0) XOR IV) XOR D(C0) = IV, 
+because D(C0) XOR D(C0) = 0, leaving only IV
+
+In the “lazy_cbc” challenge, the IV happens to be equal to the key (IV == KEY), so P1 XOR P3 directly yields the key.
+In the code, this is done as follows:
+
+B1 = decrypted[0:16]        # P1
+B3 = decrypted[32:48]       # P3  (third block)
+key = xor_bytes(B1, B3)     # P1 XOR P3 -> IV (key)
+
+ASCII:
+
+Send ciphertext:           C0 | 00...00 | C0
+ 			   |       |      |                                          
+Decrypting (D = AES-DEC): D(C0)  D(0)   D(C0)
+Apply XOR with the previous block:
+P1 = D(C0) XOR IV   (result for block 1)
+P2 = D(0)  XOR C0   (result for block 2)
+P3 = D(C0) XOR 0 = D(C0)  (result for block 3)
+
+Compute: P1 XOR P3 = (D(C0) XOR IV) XOR D(C0) = IV
+(IV == KEY)
+
+Explanation of the code:
+
+The code implements an attack on a misconfigured AES‑CBC setup where the IV (initialization vector) equals the key (IV = key), or where the server leaks decrypted plaintext in an error message.
+By sending a specially crafted ciphertext C0 || 00...00 || C0 and using the CBC property, we can obtain two plaintext blocks P1 and P3 such that their XOR yields the IV.
+If IV == key, then P1 XOR P3 yields the key. The recovered key is then sent to /get_flag/{key_hex}/ to retrieve the flag.
+
+1. The xor_bytes() function. This code performs an element-wise XOR of two byte sequences of the same length (or truncated to the minimum length) and returns the result as bytes:
+
+def xor_bytes(a: bytes, b: bytes) -> bytes:
+    return bytes(x ^ y for x, y in zip(a, b))
+
+1.1 zip(a, b) — It creates pairs of corresponding bytes from a and b. If the lengths differ, extra bytes are ignored (zip takes up to the minimum length).
+
+1.2 For each pair (x, y) the code computes x ^ y (bitwise XOR).
+
+1.3 The generator collects the results and bytes(...) converts them into a byte string.
+
+1.4 XOR is a fundamental operation in cryptography and in recovering the IV/key: at the end of the attack key = B1 XOR B3. This function implements exactly that.
+
+Errors or limitations: If a and b have different lengths, the result will have the length of the shorter one. In the code it is used on 16‑byte blocks, so lengths are normally equal.
+
+2. The get_encrypted() function sends a GET request to the /encrypt/<hex_plaintext>/ endpoint so that the server encrypts our chosen plaintext and returns the ciphertext. It returns the ciphertext as bytes:
+
+def get_encrypted():
+    # choose 3 identical 16-byte blocks (here: b'b'*48)
+    pt = b"b" * 48
+    pt_hex = pt.hex()
+    url = f"{URL}/encrypt/{pt_hex}/"
+    r = requests.get(url, timeout=10)
+    r.raise_for_status()
+    data = r.json()
+    if "ciphertext" not in data:
+        raise RuntimeError("encrypt did not return ciphertext: " + str(data))
+    return bytes.fromhex(data["ciphertext"])
+
+2.1 pt = b"b" * 48 — constructs a 48‑byte plaintext (3 blocks of 16 bytes) made of three identical 0x62 ('b') blocks. Using identical blocks makes reasoning easier but is not critical for the attack.
+
+2.2 pt_hex = pt.hex() — converts the bytes to a hex string (e.g. '6262...') because the API expects hex in the URL.
+
+2.3 url = f"{URL}/encrypt/{pt_hex}/" — builds the URL for the encryption request.
+
+2.4 r = requests.get(url, timeout=10) — performs an HTTP GET, waiting up to 10 seconds.
+
+2.5 r.raise_for_status() — raises an HTTPError if the response status is 4xx/5xx, stopping execution.
+
+2.6 data = r.json() — parses the JSON response.
+
+2.7 if "ciphertext" not in data: raise RuntimeError(...) — checks that the server returned a ciphertext field; if not, raises an error.
+
+2.8 return bytes.fromhex(data["ciphertext"]) — converts the ciphertext hex string to bytes and returns it.
+
+Need for three blocks:
+
+The attack requires at least three ciphertext blocks, because we will place C0 in the first and third block positions and a zero block in the middle. That is why we request encryption of a 3‑block plaintext.
+
+Errors or limitations:
+
+Network / timeout, or server returning an unexpected response format.
+
+The server may validate input and disallow such a plaintext — in that case the function will raise an error.
+
+3. The send_and_get() function constructs a specially formed ciphertext C0 || 00...00 || C0, sends it to /receive/<hex_ct>/, and then extracts the decrypted plaintext from the response (the server returns it inside an error message). It returns the decrypted plaintext as bytes.
+
+def send_and_get(ct_bytes: bytes):
+    # ciphertext: C0 || 0(16 bytes) || C0
+    if len(ct_bytes) < 16:
+        raise ValueError("ciphertext too short")
+    C0 = ct_bytes[:16]
+    crafted = C0 + (b"\x00" * 16) + C0
+    crafted_hex = crafted.hex()
+    url = f"{URL}/receive/{crafted_hex}/"
+    r = requests.get(url, timeout=10)
+    r.raise_for_status()
+    data = r.json()
+    # If server returns error with invalid plaintext, it includes hex of decrypted plaintext.
+    # Example: {"error": "Invalid plaintext: <hex...>"}
+    if "error" in data and data["error"].startswith("Invalid plaintext: "):
+        hexpart = data["error"].split("Invalid plaintext: ")[1].strip()
+        return bytes.fromhex(hexpart)
+    else:
+        # If server returned success or other message, print it for debugging
+        raise RuntimeError("Unexpected response from receive: " + str(data))
+
+3.9 hexpart = data["error"].split("Invalid plaintext: ")[1].strip() — извлекаем часть после Invalid plaintext: , это hex расшифрованного plaintext.
+
+3.10 return bytes.fromhex(hexpart) — возвращаем байты расшифрованного plaintext.
+
+3.1 if len(ct_bytes) < 16: raise ValueError(...) — ensure we have at least one block C0 (16 bytes).
+
+3.2 C0 = ct_bytes[:16] — extract the first ciphertext block that the server returned in get_encrypted().
+
+3.3 crafted = C0 + (b"\x00" * 16) + C0 — build the attacking ciphertext from three 16‑byte blocks:
+
+3.3.1 block1 = C0
+
+3.3.2 block2 = 16 zero bytes
+
+3.3.3 block3 = C0
+
+3.3 crafted_hex = crafted.hex() — convert to hex for embedding in the URL.
+
+3.4 url = f"{URL}/receive/{crafted_hex}/" — build the URL to send.
+
+3.5 r = requests.get(url, timeout=10) — send the GET request.
+
+3.6 r.raise_for_status() — check the HTTP status code.
+
+3.7 data = r.json() — parse the JSON response.
+
+3.8 Check if "error" in data and data["error"].startswith("Invalid plaintext: ") — assumption: on an invalid plaintext the server returns an error message containing the hex of the decrypted plaintext.
+
+3.9 hexpart = data["error"].split("Invalid plaintext: ")[1].strip() — extract the part after "Invalid plaintext: ", which is the hex of the decrypted plaintext.
+
+3.10 return bytes.fromhex(hexpart) — return the decrypted plaintext as bytes.
+
+The idea of the cryptographic construction (C0 || 0 || C0):
+
+Let D(C) = AES-Decrypt(C). Under CBC decryption for ciphertext blocks Ci and IV:
+
+P1 = D(C1) XOR IV
+
+P2 = D(C2) XOR C1
+
+P3 = D(C3) XOR C2
+
+Substitute our crafted: C1=C0, C2=0, C3=C0:
+
+P1 = D(C0) XOR IV
+
+P2 = D(0) XOR C0
+
+P3 = D(C0) XOR 0 = D(C0)
+
+Therefore P1 XOR P3 = (D(C0) XOR IV) XOR D(C0) = IV. So the XOR of the first and third plaintext blocks yields the IV. If the server uses IV == key (vulnerable configuration), this gives the key.
+
+The server returns the decrypted plaintext inside the error message:
+Because in this challenge the server may throw an error during plaintext validation and include the hex of the decrypted plaintext in the error field, this makes the attack easier — we obtain P1..P3 in the clear.
+
+Errors or limitations:
+
+The server may not return the decrypted plaintext in an error (in which case our approach fails and the function raises a RuntimeError).
+
+If the server validates ciphertext length/format and rejects a zero block, an error may occur.
+
+In the real world servers must not leak decrypted plaintext in error messages — this is a vulnerability of the training service: https://aes.cryptohack.org/lazy_cbc/.
+
+4. The get_flag() function sends a request to the /get_flag/<key_hex>/ endpoint with the candidate key in hex. If the server returns a "plaintext" field, the function returns its contents (decoded from hex). With the correct key the server will decrypt the encrypted flag and return the plaintext.
+
+def get_flag(key_bytes: bytes):
+    key_hex = key_bytes.hex()
+    url = f"{URL}/get_flag/{key_hex}/"
+    r = requests.get(url, timeout=10)
+    r.raise_for_status()
+    data = r.json()
+    if "plaintext" in data:
+        return bytes.fromhex(data["plaintext"])
+    else:
+        raise RuntimeError("get_flag did not return plaintext: " + str(data))
+
+4.1 key_hex = key_bytes.hex() — convert the recovered key to a hex string.
+
+4.2 url = f"{URL}/get_flag/{key_hex}/" — build the URL.
+
+4.3 r = requests.get(url, timeout=10) — perform the GET request.
+
+4.4 r.raise_for_status() — check the HTTP status.
+
+4.5 data = r.json() — parse the JSON.
+
+4.6 if "plaintext" in data: return bytes.fromhex(data["plaintext"]) — if plaintext is present, return it as bytes (decoded from hex). Otherwise an exception will be received.
+
+This is the final step — we attempt to use the recovered key to get the flag. With the correct key the server will decrypt the encrypted flag and return the plaintext. If the recovered key is incorrect, the server will return an error or a different response and the function will raise a RuntimeError.
+
+5. The main() function - orchestrates the whole process: obtain the ciphertext, send the crafted ciphertext, extract the decrypted blocks, recover the key, and request the flag.
+
+def main():
+    print("\nRequesting encryption\n")
+    ct = get_encrypted()
+    print("Received ciphertext (hex):\n\n" + ct.hex() + "\n")
+    decrypted = send_and_get(ct)
+    # decrypted is the raw plaintext bytes that server produced when decrypting our ciphertext
+    if len(decrypted) < 48:
+        raise RuntimeError("decrypted length unexpected: " + str(len(decrypted)))
+    B1 = decrypted[0:16]
+    B3 = decrypted[32:48]
+    key = xor_bytes(B1, B3)
+    print("Recovered key:", key.hex(), "\n")
+    print("Recovered flag\n")
+    flag = get_flag(key)
+    print("FLAG:", flag.decode(), "\n")
+
+if __name__ == "__main__":
+    main()
+
+5.1 ct = get_encrypted() — obtain the encrypted ciphertext blob for three blocks.
+
+Print the hex of the received ciphertext (useful for debugging).
+
+5.2 decrypted = send_and_get(ct) — send the crafted ciphertext and receive the decrypted plaintext (as produced by the server), which should contain at least 48 bytes (3 blocks of 16).
+
+5.3 if len(decrypted) < 48: raise RuntimeError(...) — check that we received the expected length (the server may sometimes truncate or not return the full plaintext).
+
+5.4 B1 = decrypted[0:16] — first decrypted block (P1).
+
+5.5 B3 = decrypted[32:48] — third decrypted block (P3).
+
+5.6 key = xor_bytes(B1, B3) — key = P1 XOR P3 (see explanation above).
+
+Print the recovered key in hex.
+
+5.7 flag = get_flag(key) — send the key to the server to retrieve the flag.
+
+5.8 print("FLAG:", flag.decode()) — decode the flag bytes to a string and print it.
+
+Key cryptographic formula:
+key = P1 XOR P3, because::
+
+P1 = D(C0) XOR IV
+
+P3 = D(C0)
+P1 XOR P3 = IV
+
+and assuming IV == key -> P1 XOR P3 = key
+
+For the attack to succeed, the server must allow encrypting an arbitrary plaintext via /encrypt/<hex>/ and return the ciphertext.
+The server must accept arbitrary ciphertext via /receive/<hex>/ and, on error, return the decrypted plaintext (or otherwise give us access to the decrypted P1..P3).
+
+The server uses AES‑CBC in a bad configuration — IV = key (or at least the IV is fixed/accessible and equals the key).
+
+Blocks are 16 bytes (AES blocks), and data exchange/parsing is done in hex.
+
+If any of these conditions is not met (for example, the server does not reveal decrypted plaintext or uses authenticated encryption), the attack will fail.
+
+Protection against this attack:
+
+Never set the IV equal to the key. The IV must be random and independent of the key.
+
+Use AEAD (AES-GCM) or a separate HMAC to ensure integrity and authenticity (Encrypt-then-MAC)
+
+Do not return decrypted plaintext in error messages.
+
+Validate and restrict incoming ciphertext (for example, check length and format).
+
+
+
+
+
+
+
+
+

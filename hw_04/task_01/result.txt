@@ -1,0 +1,13 @@
+.\task.py
+
+Requesting encryption
+
+Received ciphertext (hex):
+
+138fa8972d8d562f85e71f86f5891a961c83e0749cf16d972572e650d2ae1bfb2c239ab39a417df314da0e6888678f92
+
+Obtained key: 4d66727acc9652f2abc06f1718c76464
+
+Obtained flag
+
+FLAG: crypto{50m3_p30pl3_d0n7_7h1nk_IV_15_1mp0r74n7_?}
