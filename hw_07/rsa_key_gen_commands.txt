@@ -1,0 +1,7 @@
+# For Alice
+openssl genrsa -out alice_private.pem 2048
+openssl rsa -in alice_private.pem -pubout -out alice_public.pem
+
+# For Bob
+openssl genrsa -out bob_private.pem 2048
+openssl rsa -in bob_private.pem -pubout -out bob_public.pem

@@ -1,0 +1,205 @@
+Authenticated Diffie–Hellman protocol (single-process model).
+RSA keys for Alice and Bob are stored in files and loaded at runtime.
+The logic of each party (Alice / Bob) is explicitly defined, and message exchange is simulated.
+Uses RSA-PSS signatures, RSA key fingerprints, and a nonce in the signature.
+
+The script implements an authenticated Diffie–Hellman key exchange and performs the following tasks:
+
+1. Uses Diffie–Hellman (DH) to derive a shared secret;
+2. Uses RSA-PSS to sign DH public keys (to protect against MITM attacks);
+3. Clearly separates the logic of Alice and Bob and simulates message exchange (via dictionaries) — i.e., “explicitly defines the logic of each party”;
+4. Displays RSA public key fingerprints and verifies digital signatures;
+5. After successful verification, both parties derive an identical key via HKDF to produce the final symmetric key (e.g., for AES encryption).
+
+# Description:
+
+hashes, padding, rsa, dh: cryptographic primitives (RSA, Diffie–Hellman, hash functions).
+serialization: handles serialization (saving or loading) of keys in PEM format.
+HKDF: a key derivation function used to generate a symmetric key from the shared secret.
+InvalidSignature: exception raised when signature verification fails.
+hexlify: converts bytes to a hexadecimal string.
+sha256: used to compute fingerprints of public keys.
+os and sys: used for file system operations and program exit handling on errors.
+
+# Functions for working with RSA keys:
+
+# Function generate_and_save_rsa_keys() (for testing purposes only)
+
+Generates a new pair of RSA keys (private and public).
+Saves them to files (*.pem).
+Returns the key objects.
+Used when the keys are not yet present.
+
+
+1. generate_and_save_rsa_keys(private_path, public_path)
+
+def generate_and_save_rsa_keys(private_path: str, public_path: str):
+    """Generates RSA keys and saves them to PEM files"""
+
+# Function load_rsa_keys() — loads previously generated RSA keys
+
+2. load_rsa_keys(private_path, public_path)
+
+def load_rsa_keys(private_path: str, public_path: str):
+    """Loads RSA keys from files (or generates them if they do not exist)"""
+
+Checks whether the key files exist.
+If the key files do not exist — calls generate_and_save_rsa_keys().
+If the key files exist — loads them using serialization.load_pem_*.
+Returns a key pair (private, public).
+
+The key files are generated once using the following commands:
+
+# Alice
+openssl genrsa -out alice_private.pem 2048
+openssl rsa -in alice_private.pem -pubout -out alice_public.pem
+
+# Bob
+openssl genrsa -out bob_private.pem 2048
+openssl rsa -in bob_private.pem -pubout -out bob_public.pem
+
+In this case, the keys are persistent and correspond to a real authentication model.
+
+# Function fingerprint_rsa(pubkey):
+
+Serializes the public key in PEM format.
+Computes its SHA256 hash.
+Used for identification and to verify the uniqueness of the key (as a "digital fingerprint")
+
+
+3. fingerprint_rsa(pubkey)
+def fingerprint_rsa(pubkey):
+    """Computes the SHA256 fingerprint of an RSA public key"""
+
+
+
+# Key Exchange Logic:
+
+1. Load (or generate, if missing) RSA keys for both parties.
+Display SHA256 fingerprints of the public keys for verification.
+
+# Loading or generating RSA keys for Alice and Bob
+
+alice_rsa_private, alice_rsa_public = load_rsa_keys(private_path, public_path)
+bob_rsa_private, bob_rsa_public = load_rsa_keys(private_path, public_path)
+
+2. Generate shared parameters for the Diffie–Hellman protocol (numbers p and g).
+These parameters are the same for both parties (Alice and Bob).
+
+Generating shared DH (Diffie–Hellman) parameters
+
+parameters = dh.generate_parameters(generator=2, key_size=2048)
+
+3. Each party generates its own DH key pair: private and public keys.
+The private key is kept secret.
+The public key will be signed and sent to the other party.
+
+# Generating DH keys for Alice and Bob
+
+alice_private_dh = parameters.generate_private_key()
+bob_private_dh = parameters.generate_private_key()
+
+
+
+4. Alice signs her DH public key:
+
+Alice generates a random nonce (16 bytes).
+She constructs the message: "Alice||nonce||DH_public_key".
+She signs it with her RSA private key.
+She creates a packet for Bob containing: the DH public key, the signature, the nonce, and her RSA public key (in PEM format).
+
+alice_signature = alice_rsa_private.sign(
+    alice_to_sign,
+    padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
+    hashes.SHA256()
+)
+
+
+
+5. Bob verifies Alice’s signature:
+
+Bob receives the packet from Alice.
+He extracts Alice’s RSA public key.
+He verifies the signature.
+If the signature is valid, it confirms that the message is genuinely from Alice and the DH public key has not been tampered with.
+If verification fails, the program exits (sys.exit).
+
+alice_pub_from_channel.verify(
+        received_sig,
+        expected_data,
+        padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
+        hashes.SHA256()
+    )
+
+
+
+6. Bob signs his DH public key:
+
+Similarly to step 4 for Alice, but now Bob performs the action.
+He signs his DH public key along with a nonce.
+He sends this signed package to Alice.
+
+bob_signature = bob_rsa_private.sign(
+    bob_to_sign,
+    padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
+    hashes.SHA256()
+)
+
+
+
+7. Alice verifies Bob’s signature:
+
+Alice receives the package from Bob.
+She verifies the signature using Bob’s RSA public key.
+If the verification succeeds - she trusts Bob’s DH public key.
+
+bob_pub_from_channel.verify(
+        rb_sig,
+        expected_bob_data,
+        padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
+        hashes.SHA256()
+    )
+
+
+
+8. Compute the shared secret (Diffie–Hellman)
+alice_shared = alice_private_dh.exchange(bob_public_dh)
+bob_shared = bob_private_dh.exchange(alice_public_dh)
+
+Alice and Bob compute the shared secret using the DH formula.
+If the values match (verified mathematically), this is the shared secret key (still in raw form).
+
+
+
+9. Derive the symmetric key using HKDF
+
+Use HKDF (Key Derivation Function) to derive a fixed-length (32-byte) symmetric key from the DH shared secret.
+SHA256 is used as the underlying hash function.
+Both derived keys (for Alice and Bob) should be identical
+
+derived_alice = HKDF(
+    algorithm=hashes.SHA256(),
+    length=32,
+    salt=None,
+    info=b'auth handshake'
+).derive(alice_shared)
+
+derived_bob = HKDF(
+    algorithm=hashes.SHA256(),
+    length=32,
+    salt=None,
+    info=b'auth handshake'
+).derive(bob_shared)
+
+
+
+Output results:
+
+Check whether the derived keys match. If True, it means the key exchange and signature verification succeeded.
+Then, display the derived key in hexadecimal format
+
+print("Shared keys equal?", derived_alice == derived_bob)
+print("Derived key:", hexlify(derived_alice))
+
+
+
