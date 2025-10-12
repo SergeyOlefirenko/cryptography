@@ -1,0 +1,10 @@
+Bob long-term signing public key (PEM):
+-----BEGIN PUBLIC KEY-----
+MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEnWDTx5eUNN2OfCKRJvKDv8NihoaDVjum
+ZvaUhdGws02FtQXmkOsk03GVBpp/ogSr94MQuPKpQjAALFYyKh0zKQ==
+-----END PUBLIC KEY-----
+
+Bob ECDH public key (hex):
+00ed5cadc26dfa922f80b417819b90a19ad7ab354bc9e6c13c4098a4adf8dd48
+Signature of Bob's ECDH key (hex):
+304402202ba24b1ec0f072aa795b5035a42aed20f4bcb3facddfda64c4b8ae5c6dc81838022019af955a405c02216da11d23b0b01b06bf4fb5ea6bbea599b35af4754c1ccc4a

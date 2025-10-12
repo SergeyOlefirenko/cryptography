@@ -1,0 +1,5 @@
+# Generation of an ECDSA private key (SECP256K1)
+openssl ecparam -name secp256k1 -genkey -noout -out bob_sign_priv.pem
+
+# Extracting the public key from the private key
+openssl ec -in bob_sign_priv.pem -pubout -out bob_sign_pub.pem

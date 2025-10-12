@@ -1,0 +1,141 @@
+Libraries:
+
+ec - module for working with elliptic curves (ECDSA)
+x25519 - module for ECDH (Curve25519)
+hashes - cryptographic hash functions (SHA-256)
+serialization - for saving and loading keys (PEM/DER)
+InvalidSignature - exception raised for an invalid signature
+hexlify/unhexlify - conversion of bytes to hex string and back
+os - working with the file system (checking file existence)
+
+
+Alice's files:
+
+alice_sign_pub.pem — long-term ECDSA key for signing
+alice_ecdh_pub.hex — Alice’s ECDH public key in hex
+alice_ecdh_sign.hex — Alice’s signature on the ECDH key
+
+
+# 1. Loading Alice's signing public key:
+
+The serialization.load_pem_public_key method reads a PEM file and creates an ECDSA public key object for subsequent signature verification.
+
+with open(alice_sign_pub_file, "rb") as f:
+    alice_sign_pub_key = serialization.load_pem_public_key(f.read())
+
+# Loading Alice's ECDH key and signature: unhexlify converts a hex string into bytes so that they can be used for signature verification.
+
+with open(alice_ecdh_pub_file, "r") as f:
+    alice_ecdh_pub_bytes = unhexlify(f.read().strip())
+
+with open(alice_ecdh_sign_file, "r") as f:
+    alice_ecdh_sign = unhexlify(f.read().strip())
+
+
+# 2. Verifying Alice's signature on her ECDH key: the verify method checks that alice_ecdh_sign was indeed signed by the private key corresponding to alice_sign_pub_key.
+ec.ECDSA(hashes.SHA256()) specifies the ECDSA signature algorithm with SHA-256. If the signature is invalid, an InvalidSignature exception is raised.
+
+try:
+    alice_sign_pub_key.verify(
+        alice_ecdh_sign,
+        alice_ecdh_pub_bytes,
+        ec.ECDSA(hashes.SHA256())
+    )
+    print("Alice's ECDH public key signature verified.")
+except InvalidSignature:
+    raise SystemExit("ERROR: Alice's signature verification failed!")
+
+
+# 3. Loading or generating Bob’s long-term signing key (if key files do not exist): os.path.exists checks whether the key files are present
+serialization.load_pem_private_key - loads a private key from a PEM file
+ec.generate_private_key(ec.SECP256K1()) - generates a new ECDSA private key on the SECP256K1 curve
+
+bob_sign_key_file = "bob_sign_priv.pem"
+bob_sign_pub_file = "bob_sign_pub.pem"
+
+if os.path.exists(bob_sign_key_file) and os.path.exists(bob_sign_pub_file):
+    # Load existing keys
+    with open(bob_sign_key_file, "rb") as f:
+        bob_sign_private = serialization.load_pem_private_key(f.read(), password=None)
+    with open(bob_sign_pub_file, "rb") as f:
+        bob_sign_public = serialization.load_pem_public_key(f.read())
+    print("OK, loaded Bob's long-term signing key pair.")
+else:
+    # Generate a new SECP256K1 key pair
+    bob_sign_private = ec.generate_private_key(ec.SECP256K1())
+    bob_sign_public = bob_sign_private.public_key()
+
+private_bytes - saves the private key in PEM format using PKCS8 without encryption.
+public_bytes - saves the public key in PEM format
+
+
+    # Save the private key
+    with open(bob_sign_key_file, "wb") as f:
+        f.write(
+            bob_sign_private.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+        )
+
+    # Save the public key
+    with open(bob_sign_pub_file, "wb") as f:
+        f.write(
+            bob_sign_public.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo
+            )
+        )
+    print("OK, generated and saved Bob's long-term signing key pair.")
+
+
+
+# 4. x25519.X25519PrivateKey.generate() — generates a private key for key exchange using the X25519 (ECDH) curve
+
+public_key() - obtains the corresponding public key from the private key.
+public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw) - returns the bytes without any PEM/DER wrapping
+hexlify - converts the bytes into a hexadecimal string for storage or transmission
+
+bob_ecdh_private = x25519.X25519PrivateKey.generate()
+bob_ecdh_public = bob_ecdh_private.public_key()
+
+bob_ecdh_pub_bytes = bob_ecdh_public.public_bytes(
+    serialization.Encoding.Raw,
+    serialization.PublicFormat.Raw
+)
+bob_ecdh_pub_hex = hexlify(bob_ecdh_pub_bytes).decode()
+print("Bob's ECDH public key (hex):", bob_ecdh_pub_hex)
+
+
+
+# 5. Bob's ECDH key signature: bob_sign_private.sign() - creates a digital signature of the public key bytes.
+The signature is verified on Alice's side to ensure that the key really comes from Bob.
+hexlify — converts the signature to a hex string for storage
+
+bob_ecdh_sign = bob_sign_private.sign(
+    bob_ecdh_pub_bytes,
+    ec.ECDSA(hashes.SHA256())
+)
+bob_ecdh_sign_hex = hexlify(bob_ecdh_sign).decode()
+print("Bob's ECDH key signature (hex):", bob_ecdh_sign_hex)
+
+
+
+# 6. Saving all of Bob’s data in a single file: the signing public key (PEM), Bob’s ECDH public key (hex), and the ECDH key signature (hex) are stored.
+This file can be sent to Alice for an authenticated key exchange
+
+with open("bob_keys.txt", "w") as f:
+    f.write("Bob long-term signing public key (PEM):\n")
+    f.write(
+        bob_sign_public.public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo
+        ).decode()
+    )
+    f.write("\nBob ECDH public key (hex):\n")
+    f.write(bob_ecdh_pub_hex + "\n")
+    f.write("Signature of Bob's ECDH key (hex):\n")
+    f.write(bob_ecdh_sign_hex + "\n")
+
+print("\nOK, all values saved to bob_keys.txt")
