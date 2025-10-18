@@ -1,0 +1,38 @@
+Explanation:
+
+1. Creating a self-signed certificate
+
+cmd: openssl x509 -req -sha256 -in server.csr -signkey server.key -out server.crt
+
+Where:
+
+-req — certificate based on CSR
+-sha256 — hashing algorithm for signature
+-in server.csr — вхідний CSR
+-signkey server.key — signing with our own private key
+-out server.crt — original certificate file
+
+
+2. Certificate content verification
+
+cmd: openssl x509 -text -noout -in server.crt
+
+
+Result:
+
+Subject (owner data),
+Issuer (the same, because the certificate is self-signed),
+Validity (expiration period),
+Public Key,
+Signature SHA-256.
+
+
+3. Structure view ASN.1
+
+openssl asn1parse -in server.crt
+
+Allows viewing the internal structure of the certificate as an ASN.1 tree structure
+
+
+
+

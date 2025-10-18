@@ -1,0 +1,33 @@
+Explanation: 
+
+1. Creation of an RSA private key (2048 біт)
+
+cmd: openssl genpkey -algorithm RSA -out server.key -pkeyopt rsa_keygen_bits:2048
+
+Where:
+
+-algorithm RSA — indicates that the RSA algorithm is being used
+-out server.key — the name of the file where the key will be saved
+-pkeyopt rsa_keygen_bits:2048 — specifies the key length (2048 bits — the standard secure length)
+
+Result: a server.key file will be created in PEM format
+
+
+2. Viewing the key contents
+
+cmd: openssl rsa -text -in server.key
+
+This command will decrypt the contents and show:
+
+-modulus (n) — a large number that is part of the public key
+-publicExponent (e) — usually 65537
+-privateExponent (d) — the private component
+-as well as the primes p and q from which the key is built
+
+This is the private information. It allows the private key to be reconstructed
+
+3. Obtain the public key in PEM format:
+
+cmd: openssl rsa -in server.key -pubout -out public.pem
+
+

@@ -1,0 +1,8 @@
+1. According to the Certificate Transparency logs: the first certificate for the domain robotdreams.cc was issued on May 18, 2020.
+
+2020-05-18  2020-05-18  2020-10-09  sni.cloudflaressl.com  *.robotdreams.cc
+robotdreams.cc  C=US, ST=CA, L=San Francisco, O="CloudFlare, Inc.", CN=CloudFlare Inc ECC CA-2
+
+2. The validity period of this certificate was from May 18, 2020 to October 9, 2020
+
+This certificate was issued through Cloudflare for the domain robotdreams.cc, using a wildcard certificate *.robotdreams.cc.

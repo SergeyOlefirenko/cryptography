@@ -1,0 +1,23 @@
+Explanation: 
+
+1. Generation CSR:
+
+openssl req -new -keyout server.key -out server.csr -subj "/C=UA/L=Kyiv/O=Robot_dreams/CN=www.robotdreams.cc/emailAddress=youremail@example.com" -nodes
+
+Where:
+
+-new — create a new request CSR
+-key server.key — an existing private key is used
+-out server.csr — the file where the CSR will be saved
+-subj "/C=UA/L=Kyiv/O=Robot_dreams/CN=www.robotdreams.cc/emailAddress=youremail@example.com" — metadata (C = Country, L = City, O = Organization, CN = Common Name, emailAddress = email)
+-nodes — the key is not encrypted with a password у CSR
+
+After this, a file is created server.csr.
+
+
+2. Content verification CSR:
+
+Result: public key, matadata (CN, O, C e.t.c.), Signature created with the private key
+
+
+

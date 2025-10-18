@@ -1,0 +1,32 @@
+cmd commands:
+
+1.Command to save all certificates to the file certs.pem
+
+openssl s_client -connect robotdreams.cc:443 -showcerts | Out-File -Encoding ascii certs.pem
+
+
+2. Command to create multiple files, each containing a single certificate
+
+$certs = Get-Content .\certs.pem -Raw -Encoding ASCII -ErrorAction Stop
+$parts = $certs -split "-----END CERTIFICATE-----"
+
+for ($i = 0; $i -lt $parts.Length; $i++) {
+    if ($parts[$i] -match "BEGIN CERTIFICATE") {
+        $filename = "cert_$i.crt"
+        $content = $parts[$i] + "-----END CERTIFICATE-----`n"
+        $content | Out-File -Encoding ascii $filename
+        Write-Host "Saved: $filename"
+    }
+}
+
+3. Command to display the validity period for each certificate
+
+Get-ChildItem -Filter "cert_*.crt" | ForEach-Object {
+    Write-Host "`n==== $($_.Name) ===="
+    openssl x509 -in $_.FullName -noout -dates
+}
+
+4. Command to display the public key details, including its size and the elliptic curve used
+
+openssl s_client -connect robotdreams.cc:443 -showcerts | openssl x509 -inform PEM -noout -pubkey | openssl pkey -pubin -text -noout
+

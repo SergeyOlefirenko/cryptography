@@ -1,0 +1,30 @@
+Answers:
+
+1. Name of the organization that issued the valid certificate for the website robotdreams.cc: Google Trust Services
+(as shown in the field issuer=C=US, O=Google Trust Services, CN=WE1)
+
+Certificate validity period:
+
+cert_0.crt: from 27 Sep 2025 to 26 Dec 2025 – 3 months
+cert_1.crt: from 13 Dec 2023 to 20 Feb 2029 – 5 years 2 months
+cert_2.crt: from 15 Nov 2023 to 28 Jan 2028 – 4 years 2 months
+
+2. Certificate with the longest validity period:
+
+The certificate with the longest validity period is
+cert_1.crt (C=US, O=Google Trust Services, CN=WE1)
+
+Valid from 13 Dec 2023 to 20 Feb 2029
+NotBefore: Dec 13 09:00:00 2023 GMT
+NotAfter: Feb 20 14:00:00 2029 GMT
+
+3. Server key details for robotdreams.cc
+
+Key size: 256 bits
+Key type: id-ecPublicKey
+Elliptic curve: prime256v1 (NIST P‑256)
+Signature algorithm: ecdsa-with-SHA256
+
+Commands to display:
+
+openssl s_client or openssl x509 -text -in cert_0.crt
