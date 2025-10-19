@@ -74,3 +74,4 @@ After this, the commit on GitHub should show as Verified
 
 
 
+git log --show-signature
