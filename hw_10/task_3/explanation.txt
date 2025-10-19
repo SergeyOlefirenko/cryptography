@@ -14,7 +14,6 @@ type $env:USERPROFILE\.ssh\id_ed25519.pub
 here will be result of: type $env:USERPROFILE\.ssh\id_ed25519.pub (just need to paste cmd/PowerShell otput result)
 "@ | Set-Content -Encoding ascii $env:USERPROFILE\.ssh\allowed_signers
 
-
 3. Configuring Git for commit signing
 
 In PowerShell:
@@ -22,7 +21,6 @@ In PowerShell:
 git config --global user.signingkey $env:USERPROFILE\.ssh\id_ed25519
 git config --global gpg.format ssh
 git config --global gpg.ssh.allowedSignersFile $env:USERPROFILE\.ssh\allowed_signers
-
 
 # Specifying the private key for signing commits
 git config --global user.signingkey "$sshPath\id_ed25519" or git config --global user.signingkey "C:/Users/Asus/.ssh/id_ed25519"
