@@ -1,3 +1,30 @@
+Generating a new key pair
+
+# Navigate to the .ssh folder
+cd $env:USERPROFILE\.ssh
+
+# Generate a new key pair named id_ed25519_git
+ssh-keygen -t ed25519 -C "user-mail@gmail.com" -f "id_ed25519_git"
+-t ed25519 — key type (recommended for GitHub).
+
+-C — comment (usually email).
+
+-f — file name for the keys (id_ed25519_git will be the private key, id_ed25519_git.pub — the public key).
+
+SSH and GPG key settings on GitHub:
+
+Settings - SSH and GPG keys - New SSH key or Add SSH key.
+
+Add new key:
+
+In the Title field, need to enter a name for the key, for example: Signing key
+
+In the Key field, paste the copied public key from id_ed25519_git.pub
+
+Press Add SSH key
+
+____________________________________________________________________________________________________________________________________________________________________
+
 1. Determining the public key
 
 \.ssh are all the Git keys
@@ -10,10 +37,7 @@ type $env:USERPROFILE\.ssh\id_ed25519.pub
 
 2. Creating allowed_signers
 
-@"
-user-mail@gmail.com namespaces="git" $(Get-Content $env:USERPROFILE\.ssh\id_ed25519.pub -Raw)
-"@ | Set-Content -Encoding ascii $env:USERPROFILE\.ssh\allowed_signers
-
+"user-mail@gmail.com namespaces=`"git`" $(Get-Content $env:USERPROFILE\.ssh\id_ed25519_git.pub -Raw)" | Set-Content -Encoding ascii $env:USERPROFILE\.ssh\allowed_signers
 
 3. Configuring Git for commit signing
 
@@ -24,8 +48,8 @@ git config --global gpg.format ssh
 git config --global gpg.ssh.allowedSignersFile $env:USERPROFILE\.ssh\allowed_signers
 
 # Specifying the private key for signing commits
-git config --global user.signingkey "$sshPath\id_ed25519" or git config --global user.signingkey "C:/Users/Asus/.ssh/id_ed25519"
-or git config --global user.signingkey $env:USERPROFILE\.ssh\id_ed25519
+git config --global user.signingkey "$sshPath\id_ed25519" or git config --global user.signingkey "C:/Users/Asus/.ssh/id_ed25519_git"
+or git config --global user.signingkey $env:USERPROFILE\.ssh\id_ed25519_git
 
 # Using SSH instead of GPG
 git config --global gpg.format ssh
