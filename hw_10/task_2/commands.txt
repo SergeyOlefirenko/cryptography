@@ -1,0 +1,21 @@
+Creating a .sig file using the data from the assignment
+
+@"
+-----BEGIN SSH SIGNATURE-----
+U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg5zLXqknUP9b21pGGC7L26LXu5n
+W2zG15i0WExXmJac4AAAAMcm9ib3RfZHJlYW1zAAAAAAAAAAZzaGE1MTIAAABTAAAAC3Nz
+aC1lZDI1NTE5AAAAQCabuXryeHf3RY7qFI/sACI+1ldE8INgrrFWpObWbLCjwvtvDBTfMT
+aOHFN00UghzhkD+qmXLZZl1y2FkNtdhQM=
+-----END SSH SIGNATURE-----
+"@ | Set-Content -Encoding ascii image.png.sensei.sig
+
+
+1. Launching a specific distribution in Windows PowerShell or cmd:
+ 
+wsl or wsl -d Ubuntu  
+
+2. Verification:
+ssh-keygen -Y verify -f allowed_signers.txt -I ruslan.kiyanchuk@gmail.com -n robot_dreams -s image.png.sensei.sig < image.png > verification.txt 2>&1
+
+
+
