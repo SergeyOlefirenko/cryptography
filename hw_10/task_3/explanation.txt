@@ -61,9 +61,7 @@ Write-Host "Git is configured for SSH-signed commits"
 
 
 signingkey — Private SSH key
-
 allowedSignersFile — Created file
-
 Creating a signed commit
 
 In the homework folder, add changes and sign the commit:
