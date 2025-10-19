@@ -65,7 +65,7 @@ Creating a signed commit
 In the homework folder, add changes and sign the commit:
 
 git add .
-git commit -S -m "Signed new commit for Task 3 with new signing key"
+git commit -S -m "Signed new commit with signing key addet through git CLI"
 
 Push to GitHub using the git push command
 

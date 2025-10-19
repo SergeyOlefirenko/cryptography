@@ -1,0 +1,14 @@
+Updating GitHub CLI token permissions so it can work with Signing keys:
+
+gh auth refresh -h github.com -s admin:ssh_signing_key
+-h github.com — for the main GitHub
+-s admin:ssh_signing_key — grants access to work with Signing keys
+
+After successfully updating the permissions, add the key as a Signing key:
+
+gh ssh-key add C:\Users\Asus\.ssh\id_ed25519_git.pub --title "Signing key" --type signing
+
+
+Check that the key is loaded in the ssh-agent:
+
+ssh-add -l
