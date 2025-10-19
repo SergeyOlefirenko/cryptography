@@ -59,7 +59,6 @@ git config --global gpg.ssh.allowedSignersFile "$allowedSignersFile"
 
 Write-Host "Git is configured for SSH-signed commits"
 
-
 signingkey — Private SSH key
 allowedSignersFile — Created file
 Creating a signed commit
@@ -67,7 +66,7 @@ Creating a signed commit
 In the homework folder, add changes and sign the commit:
 
 git add .
-git commit -S -m "Signed commit for Task 3"
+git commit -S -m "Signed new commit for Task 3 with new key"
 
 Push to GitHub using the git push command
 
