@@ -10,8 +10,7 @@ type $env:USERPROFILE\.ssh\id_ed25519.pub
 
 2. Creating allowed_signers
 
-@"
-here will be result of: type $env:USERPROFILE\.ssh\id_ed25519.pub (just need to paste cmd/PowerShell otput result)
+user-mail@gmail.com namespaces="git" $(Get-Content $env:USERPROFILE\.ssh\id_ed25519.pub -Raw) user-mail@gmail.com
 "@ | Set-Content -Encoding ascii $env:USERPROFILE\.ssh\allowed_signers
 
 3. Configuring Git for commit signing
