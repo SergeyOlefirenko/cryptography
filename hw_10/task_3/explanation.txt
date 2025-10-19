@@ -1,0 +1,56 @@
+1. Determining the public key
+
+\.ssh are all the Git keys
+
+Need to use the public key that will be used to sign commits, which is id_ed25519.pub 
+
+It can be opened in PowerShell:
+
+type $env:USERPROFILE\.ssh\id_ed25519.pub
+
+2. Creating allowed_signers
+
+@"
+here will be result of: type $env:USERPROFILE\.ssh\id_ed25519.pub (just need to paste cmd/PowerShell otput result)
+"@ | Set-Content -Encoding ascii $env:USERPROFILE\.ssh\allowed_signers
+
+
+3. Configuring Git for commit signing
+
+In PowerShell:
+
+git config --global user.signingkey $env:USERPROFILE\.ssh\id_ed25519
+git config --global gpg.format ssh
+git config --global gpg.ssh.allowedSignersFile $env:USERPROFILE\.ssh\allowed_signers
+
+
+# Specifying the private key for signing commits
+git config --global user.signingkey "$sshPath\id_ed25519" or git config --global user.signingkey "C:/Users/Asus/.ssh/id_ed25519"
+or git config --global user.signingkey $env:USERPROFILE\.ssh\id_ed25519
+
+# Using SSH instead of GPG
+git config --global gpg.format ssh
+
+# Specifying the path to allowed_signers
+git config --global gpg.ssh.allowedSignersFile "$allowedSignersFile"
+
+Write-Host "Git is configured for SSH-signed commits"
+
+
+signingkey — Private SSH key
+
+allowedSignersFile — Created file
+
+Creating a signed commit
+
+In the homework folder, add changes and sign the commit:
+
+git add .
+git commit -S -m "Signed commit for Task 3"
+
+Push to GitHub using the git push command
+
+After this, the commit on GitHub should show as Verified
+
+
+
