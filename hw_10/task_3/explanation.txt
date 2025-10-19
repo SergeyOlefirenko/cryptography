@@ -23,7 +23,6 @@ In the Key field, paste the copied public key from id_ed25519_git.pub
 
 Press Add SSH key
 
-____________________________________________________________________________________________________________________________________________________________________
 
 1. Determining the public key
 
