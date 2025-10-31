@@ -34,18 +34,20 @@ The project is implemented using Python and the cryptography library.
 
 ## Project structure
 
-course-project/chat/
+```text
+app
 │
-├─ alice.py # Alice Server/Client
-├─ bob.py # Bob Client
-├─ utils.py # Helper Functions: Cryptography and Console Handling
-├─ state_alice.json # Alice Double Ratchet State
-├─ state_bob.json # Bob Double Ratchet State
+├─ alice.py                 # Alice Server/Client
+├─ bob.py                   # Bob Client
+├─ utils.py                 # Helper Functions: Cryptography and Console Handling
+├─ state_alice.json         # Alice Double Ratchet State
+├─ state_bob.json           # Bob Double Ratchet State
 ├─ alice_ed25519_priv.pem
 ├─ alice_ed25519_pub.pem
 ├─ bob_ed25519_priv.pem
 ├─ bob_ed25519_pub.pem
 └─ README.md
+
 
 ---
 
@@ -91,8 +93,9 @@ Message exchange:
 - Type the text and press Enter
 - Messages are automatically encrypted and signed, and decryption is performed on the recipient's side
 
-Key and message exchange diagram
+## Key and Message Exchange Diagram
 
+```text
 Alice                        Bob
 -----                        ---
 Ed25519 Keys                  Ed25519 Keys
