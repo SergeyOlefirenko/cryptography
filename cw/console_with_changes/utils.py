@@ -274,7 +274,7 @@ def verify(pub: ed25519.Ed25519PublicKey, sig: bytes, data: bytes) -> bool:
     except Exception:
         return False
 
-# CLI helpers 
+# CLI  
 def prompt():
     print(YOUR_PROMPT, end="", flush=True)
 
